@@ -1,8 +1,14 @@
 package com.kreitek.editor;
 
+import com.kreitek.editor.Memento.CommandCaretaker;
+//import com.kreitek.editor.Memento.Memento;
+import com.kreitek.editor.Memento.Memento;
 import com.kreitek.editor.commands.CommandFactory;
+import com.kreitek.editor.commands.UndoCommand;
 
+import java.awt.image.AreaAveragingScaleFilter;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 public class ConsoleEditor implements Editor {
@@ -18,6 +24,7 @@ public class ConsoleEditor implements Editor {
 
     private final CommandFactory commandFactory = new CommandFactory();
     private ArrayList<String> documentLines = new ArrayList<String>();
+    CommandCaretaker commandCaretaker = new CommandCaretaker();
 
     @Override
     public void run() {
@@ -26,7 +33,18 @@ public class ConsoleEditor implements Editor {
             String commandLine = waitForNewCommand();
             try {
                 Command command = commandFactory.getCommand(commandLine);
-                command.execute(documentLines);
+                if(command.getClass().getSimpleName().equals("UndoCommand")){
+
+                    command.execute(documentLines);
+
+                }else{
+
+                    commandCaretaker.push(getMementoOf(documentLines));
+                    command.execute(documentLines);
+                }
+
+
+
             } catch (BadCommandException e) {
                 printErrorToConsole("Bad command");
             } catch (ExitException e) {
@@ -82,6 +100,12 @@ public class ConsoleEditor implements Editor {
 
     private void printToConsole(String message) {
         System.out.print(message);
+    }
+
+    public Memento getMementoOf(ArrayList<String> documentLines){
+    ArrayList<ArrayList<String>> state = new ArrayList<>();
+    state.add((ArrayList<String>) documentLines.clone());
+        return new Memento(state);
     }
 
 }
