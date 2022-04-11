@@ -1,7 +1,9 @@
 package com.kreitek.editor;
 
+import com.kreitek.editor.Format.BadFormatException;
+import com.kreitek.editor.Format.Format;
+import com.kreitek.editor.Format.FormatFactory;
 import com.kreitek.editor.Memento.CommandCaretaker;
-//import com.kreitek.editor.Memento.Memento;
 import com.kreitek.editor.Memento.Memento;
 import com.kreitek.editor.commands.CommandFactory;
 import com.kreitek.editor.commands.UndoCommand;
@@ -26,23 +28,24 @@ public class ConsoleEditor implements Editor {
     private ArrayList<String> documentLines = new ArrayList<String>();
     CommandCaretaker commandCaretaker = new CommandCaretaker();
 
+
+
     @Override
-    public void run() {
+    public void run(String[] args) {
         boolean exit = false;
         while (!exit) {
             String commandLine = waitForNewCommand();
             try {
                 Command command = commandFactory.getCommand(commandLine);
-                if(command.getClass().getSimpleName().equals("UndoCommand")){
+                if (command.getClass().getSimpleName().equals("UndoCommand")) {
 
                     command.execute(documentLines);
 
-                }else{
+                } else {
 
                     commandCaretaker.push(getMementoOf(documentLines));
                     command.execute(documentLines);
                 }
-
 
 
             } catch (BadCommandException e) {
@@ -50,28 +53,32 @@ public class ConsoleEditor implements Editor {
             } catch (ExitException e) {
                 exit = true;
             }
-            showDocumentLines(documentLines);
+            printAll(args);
             showHelp();
         }
     }
 
-    private void showDocumentLines(ArrayList<String> textLines) {
-        if (textLines.size() > 0){
-            setTextColor(TEXT_YELLOW);
-            printLnToConsole("START DOCUMENT ==>");
-            for (int index = 0; index < textLines.size(); index++) {
-                StringBuilder stringBuilder = new StringBuilder();
-                stringBuilder.append("[");
-                stringBuilder.append(index);
-                stringBuilder.append("] ");
-                stringBuilder.append(textLines.get(index));
-                printLnToConsole(stringBuilder.toString());
+    private void printAll(String[] args){
+        try {
+            FormatFactory formatFactory = new FormatFactory();
+            Format format = formatFactory.getFormat(args[0]);
+            format.showDocumentLines(documentLines);
+
+        } catch (BadFormatException e) {
+            System.err.println("El formato que has elegido no existe, elige entre \"text\" o \"json\"");
+        }catch (ArrayIndexOutOfBoundsException e){
+
+            FormatFactory formatFactory = new FormatFactory();
+            try {
+                Format format = formatFactory.getFormat("text");
+                format.showDocumentLines(documentLines);
+
+            } catch (BadFormatException ex) {
+                ex.printStackTrace();
             }
-            printLnToConsole("<== END DOCUMENT");
-            setTextColor(TEXT_RESET);
+
         }
     }
-
     private String waitForNewCommand() {
         printToConsole("Enter a command : ");
         Scanner scanner = new Scanner(System. in);
